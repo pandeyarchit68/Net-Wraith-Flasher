@@ -1,0 +1,796 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NetWraith Firmware Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"Share Tech Mono"', 'monospace'],
+            orbitron: ['Orbitron', 'sans-serif'],
+          },
+          colors: {
+            red: { DEFAULT: '#9820db', dark: '#5b0fa8', glow: '#f63eff', deep: '#320170', dim: '#26104a' },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --red:#9820db; --red-dark:#5b0fa8; --red-glow:#f63eff; --black:#0d0a1c; --card-bg:rgba(18,6,38,0.88); }
+    body { background-color: #0d0a1c; color: #c8a8e8; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
+
+    .pcb-bg {
+      position: fixed; inset: 0; z-index: 0; background-color: #08051a;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, #14082e 39px, #14082e 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, #14082e 39px, #14082e 40px),
+        repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(152,30,219,0.09) 60px, rgba(152,30,219,0.09) 61px);
+    }
+    .pcb-bg::before {
+      content: ''; position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(200,40,255,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(152,30,219,0.14) 0%, transparent 50%),
+        radial-gradient(circle at 50% 0%, rgba(246,62,255,0.07) 0%, transparent 40%);
+    }
+    .pcb-traces { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.2; }
+    .particles  { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+    .particle   { position: absolute; background: var(--red); border-radius: 50%; opacity: 0; animation: floatUp linear infinite; }
+    @keyframes floatUp { 0%{transform:translateY(100vh);opacity:0} 10%{opacity:.5} 90%{opacity:.2} 100%{transform:translateY(-10vh) translateX(24px);opacity:0} }
+
+    .scan-bar { position: relative; height: 1px; background: linear-gradient(90deg,transparent,var(--red-dark),#9820db,var(--red-dark),transparent); }
+    .scan-bar::after { content:''; position:absolute; top:-1px; left:0; width:80px; height:3px; background:var(--red-glow); animation:scan 4s ease-in-out infinite; box-shadow:0 0 12px var(--red-glow),0 0 24px rgba(246,62,255,.45); }
+    @keyframes scan { 0%{left:0;opacity:0} 8%{opacity:1} 92%{opacity:1} 100%{left:calc(100% - 80px);opacity:0} }
+
+    .glitch { position: relative; }
+    .glitch::before,.glitch::after { content:attr(data-text); position:absolute; top:0; left:0; width:100%; height:100%; }
+    .glitch::before { color:var(--red); animation:glitch1 3s infinite; clip-path:polygon(0 0,100% 0,100% 35%,0 35%); opacity:.7; }
+    .glitch::after  { color:#d966ff;  animation:glitch2 3s infinite; clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%); opacity:.4; }
+    @keyframes glitch1 { 0%,90%,100%{transform:translateX(0);opacity:0} 92%{transform:translateX(-4px);opacity:.7} 94%{transform:translateX(4px);opacity:.7} 96%{transform:translateX(-2px);opacity:.7} }
+    @keyframes glitch2 { 0%,90%,100%{transform:translateX(0);opacity:0} 93%{transform:translateX(4px);opacity:.35} 95%{transform:translateX(-4px);opacity:.35} 97%{transform:translateX(2px);opacity:.35} }
+
+    .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    .btn-clip    { clip-path: polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); }
+    .btn-clip-sm { clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); }
+
+    .corner-cut::after { content:''; position:absolute; bottom:0; right:0; width:0; height:0; border-style:solid; border-width:0 0 20px 20px; border-color:transparent transparent #0d0a1c transparent; }
+
+    .btn-slide { position:relative; overflow:hidden; }
+    .btn-slide::before { content:''; position:absolute; inset:0; background:var(--red); transform:translateX(-101%); transition:transform .28s ease; z-index:0; }
+    .btn-slide:hover::before { transform:translateX(0); }
+    .btn-slide > span { position:relative; z-index:1; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:999; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#0a0514; border:1px solid var(--red-dark); max-width:500px; width:92%; position:relative; overflow:hidden; }
+    .modal-box::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--red),transparent); }
+
+    esp-web-install-button::part(button) {
+      font-family:'Orbitron',sans-serif; font-size:.7rem; letter-spacing:3px; text-transform:uppercase;
+      padding:.75rem 2rem; background:var(--red); color:#fff; border:none; cursor:pointer;
+      clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); transition:background .2s,box-shadow .2s;
+    }
+    esp-web-install-button::part(button):hover { background:var(--red-glow); box-shadow:0 0 18px var(--red-glow); }
+
+    ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:#07041a; } ::-webkit-scrollbar-thumb { background:#4a1880; }
+    @media(max-width:768px){ nav ul { display:none; } }
+    @media (max-width: 1024px) {
+      .hero-stats {
+        gap: 1.25rem;
+      }
+      .hero-stats > div {
+        min-width: 140px;
+      }
+    }
+    @media (max-width: 768px) {
+      .warning-popup {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        width: auto;
+        max-width: none;
+      }
+      .modal-box {
+        width: min(94vw, 34rem);
+      }
+      .hero-corners {
+        display: none;
+      }
+      .hero-stats {
+        gap: 0.75rem;
+      }
+      .hero-stats > div {
+        width: calc(50% - 0.5rem);
+        min-width: 0;
+        border-left-width: 1px;
+        padding-left: 0.9rem;
+      }
+    }
+    @media (max-width: 640px) {
+      .hero-stats > div {
+        width: 100%;
+      }
+      .scan-bar {
+        margin-left: 1rem;
+        margin-right: 1rem;
+      }
+      .footer-links {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .footer-note {
+        width: 100%;
+      }
+    }
+
+    /* Nav Flash Button */
+    .nav-flash-btn {
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+      border-top: 1px solid rgba(152,32,219,0.6);
+      border-bottom: 1px solid rgba(152,32,219,0.6);
+      border-left: none;
+      border-right: none;
+      box-shadow: none;
+      transition: box-shadow 0.4s ease, border-color 0.4s ease;
+    }
+    .nav-flash-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, #9820db, #c040f0);
+      transform: translateX(-100%);
+      transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 0;
+    }
+    .nav-flash-btn:hover::before {
+      transform: translateX(0);
+    }
+    .nav-flash-btn:hover {
+      border-color: #f63eff;
+      box-shadow: 0 0 14px rgba(246,62,255,0.45), 0 0 28px rgba(152,32,219,0.25);
+    }
+    .nav-flash-text {
+      position: relative;
+      z-index: 1;
+      color: rgba(200,168,232,0.85);
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+    .nav-flash-btn:hover .nav-flash-text {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.6);
+    }
+
+    /* View Firmware Button */
+    .view-fw-btn {
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+      border: none;
+      outline: none;
+    }
+    /* top border â€” bent inward (concave arc via SVG border trick using clip + pseudo) */
+    .view-fw-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, #9820db, #c040f0);
+      transform: translateX(-100%);
+      transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 0;
+    }
+    .view-fw-btn:hover::before {
+      transform: translateX(0);
+    }
+    .view-fw-btn:hover {
+      box-shadow: 0 0 18px rgba(246,62,255,0.5), 0 0 36px rgba(152,32,219,0.28);
+    }
+    .view-fw-btn .vf-text {
+      position: relative;
+      z-index: 1;
+      color: rgba(200,168,232,0.9);
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+    .view-fw-btn:hover .vf-text {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.6);
+    }
+    /* SVG border overlay â€” top and bottom arcs bent inward */
+    .view-fw-btn .vf-border {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 2;
+      overflow: visible;
+    }
+    .view-fw-btn .vf-border path {
+      fill: none;
+      stroke: rgba(152,32,219,0.7);
+      stroke-width: 1.2;
+      transition: stroke 0.4s ease;
+      vector-effect: non-scaling-stroke;
+    }
+    .view-fw-btn:hover .vf-border path {
+      stroke: #f63eff;
+      filter: drop-shadow(0 0 4px #f63eff);
+    }
+  </style>
+</head>
+<body>
+
+<div class="pcb-bg"></div>
+
+<svg class="pcb-traces" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <line x1="0" y1="120" x2="400" y2="120" stroke="#5b0fa8" stroke-width="1.5"/>
+  <line x1="400" y1="120" x2="400" y2="280" stroke="#5b0fa8" stroke-width="1.5"/>
+  <line x1="400" y1="280" x2="700" y2="280" stroke="#5b0fa8" stroke-width="1.5"/>
+  <circle cx="400" cy="120" r="4" fill="none" stroke="#5b0fa8" stroke-width="1.5"/>
+  <circle cx="400" cy="280" r="4" fill="none" stroke="#5b0fa8" stroke-width="1.5"/>
+  <circle cx="700" cy="280" r="5" fill="#320170" stroke="#5b0fa8" stroke-width="1.5"/>
+  <line x1="1440" y1="200" x2="1100" y2="200" stroke="#5b0fa8" stroke-width="1.5"/>
+  <line x1="1100" y1="200" x2="1100" y2="400" stroke="#5b0fa8" stroke-width="1.5"/>
+  <line x1="1100" y1="400" x2="900" y2="400" stroke="#5b0fa8" stroke-width="1.5"/>
+  <circle cx="1100" cy="200" r="4" fill="none" stroke="#5b0fa8" stroke-width="1.5"/>
+  <circle cx="1100" cy="400" r="4" fill="none" stroke="#5b0fa8" stroke-width="1.5"/>
+  <circle cx="900" cy="400" r="5" fill="#320170" stroke="#5b0fa8" stroke-width="1.5"/>
+  <line x1="0" y1="620" x2="280" y2="620" stroke="#6b12b0" stroke-width="1"/>
+  <line x1="280" y1="620" x2="280" y2="760" stroke="#6b12b0" stroke-width="1"/>
+  <circle cx="280" cy="620" r="3" fill="none" stroke="#6b12b0"/>
+  <line x1="1440" y1="680" x2="1180" y2="680" stroke="#6b12b0" stroke-width="1"/>
+  <line x1="1180" y1="680" x2="1180" y2="530" stroke="#6b12b0" stroke-width="1"/>
+  <circle cx="1180" cy="680" r="3" fill="none" stroke="#6b12b0"/>
+  <rect x="650" y="55" width="60" height="42" rx="2" fill="none" stroke="#44108c" stroke-width="1"/>
+  <line x1="650" y1="68" x2="638" y2="68" stroke="#44108c" stroke-width="1"/>
+  <line x1="650" y1="78" x2="638" y2="78" stroke="#44108c" stroke-width="1"/>
+  <line x1="710" y1="68" x2="722" y2="68" stroke="#44108c" stroke-width="1"/>
+  <line x1="710" y1="78" x2="722" y2="78" stroke="#44108c" stroke-width="1"/>
+  <circle cx="200" cy="460" r="5" fill="none" stroke="#44108c" stroke-width="1.5"/>
+  <circle cx="200" cy="460" r="2" fill="#320170"/>
+  <circle cx="1300" cy="310" r="5" fill="none" stroke="#44108c" stroke-width="1.5"/>
+  <circle cx="1300" cy="310" r="2" fill="#320170"/>
+  <circle cx="750" cy="830" r="5" fill="none" stroke="#44108c" stroke-width="1.5"/>
+  <circle cx="750" cy="830" r="2" fill="#320170"/>
+</svg>
+
+<div class="particles" id="particles"></div>
+
+<div class="relative z-10">
+
+  <!-- NAV -->
+  <nav class="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-10 md:py-5 border-b border-red-dim bg-black/80 backdrop-blur-md">
+    <img src="logo.png" alt="NetWraith" class="h-8 w-auto md:h-9">
+    <ul class="hidden md:flex gap-8 list-none">
+      <li><a href="https://github.com" target="_blank" class="font-mono text-xs tracking-widest uppercase text-zinc-500 hover:text-red-glow transition-colors duration-200">GitHub</a></li>
+      <li><a href="#firmware" class="font-mono text-xs tracking-widest uppercase text-zinc-500 hover:text-red-glow transition-colors duration-200">Firmware</a></li>
+      <li><a href="about.html" class="font-mono text-xs tracking-widest uppercase text-zinc-500 hover:text-red-glow transition-colors duration-200">About</a></li>
+    </ul>
+    <button id="navFlashBtn" class="nav-flash-btn btn-clip font-orbitron text-[0.65rem] tracking-[3px] uppercase px-5 py-2.5 border-0 cursor-pointer">
+      <span class="nav-flash-text">Flash</span>
+    </button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-[88vh] flex flex-col items-center justify-center text-center px-4 py-16 sm:px-6 md:py-20 overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none z-[1]" style="background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.1) 2px,rgba(0,0,0,0.1) 4px)"></div>
+    <div class="hero-corners absolute top-8 left-8 w-10 h-10 border-t-2 border-l-2 border-red-DEFAULT z-[2]"></div>
+    <div class="hero-corners absolute top-8 right-8 w-10 h-10 border-t-2 border-r-2 border-red-DEFAULT z-[2]"></div>
+    <div class="hero-corners absolute bottom-8 left-8 w-10 h-10 border-b-2 border-l-2 border-red-DEFAULT z-[2]"></div>
+    <div class="hero-corners absolute bottom-8 right-8 w-10 h-10 border-b-2 border-r-2 border-red-DEFAULT z-[2]"></div>
+
+    <div class="relative z-[2] flex flex-col items-center">
+      <div class="inline-block border border-red-dark bg-red-DEFAULT/10 font-mono text-red-DEFAULT text-[0.62rem] tracking-[5px] uppercase px-5 py-1.5 mb-8">
+        <span class="opacity-40">//</span> System Online <span class="opacity-40">//</span>
+      </div>
+
+      <h1 class="font-orbitron font-black uppercase leading-tight">
+        <span class="glitch block text-white" style="font-size:clamp(1.4rem,3.8vw,3.2rem);letter-spacing:3px" data-text="CONTROL FLASH &amp; DOMINATE">CONTROL FLASH &amp; DOMINATE</span>
+        <span class="block text-red-DEFAULT mt-1" style="font-size:clamp(2rem,5.5vw,4.8rem);letter-spacing:5px">WITH NET WRAITH</span>
+      </h1>
+
+      <p class="font-mono text-sm text-zinc-400 tracking-widest leading-8 max-w-lg mt-6">
+        Three firmwares. One platform. Engineered for the edge built for those who refuse to compromise on performance, precision, or power.
+      </p>
+
+      <div class="flex gap-4 flex-wrap justify-center mt-10">
+        <a href="#firmware" class="view-fw-btn btn-clip font-orbitron text-[0.7rem] tracking-[3px] uppercase px-8 py-3.5 no-underline inline-block">
+          <svg class="vf-border" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <!-- top border: line bowing inward (downward arc) -->
+            <path d="M0,0 Q50,6 100,0"/>
+            <!-- bottom border: line bowing inward (upward arc) -->
+            <path d="M0,100 Q50,94 100,100"/>
+          </svg>
+          <span class="vf-text">View Firmware</span>
+        </a>
+        <a href="https://github.com" target="_blank" class="btn-clip font-orbitron text-[0.7rem] tracking-[3px] uppercase text-red-DEFAULT border border-red-dark px-8 py-3.5 no-underline transition-all duration-200 hover:border-red-glow hover:text-red-glow">
+          GitHub
+        </a>
+      </div>
+
+      <!-- horizontal details -->
+      <div class="hero-stats flex flex-wrap gap-6 md:gap-10 justify-center mt-16 w-full max-w-5xl">
+        <div class="text-center border-l-2 border-red-dark pl-5">
+          <div class="font-orbitron font-bold text-3xl text-red-DEFAULT" style="text-shadow:0 0 10px rgba(152,32,219,.6)">3</div>
+          <div class="font-orbitron text-[0.62rem] tracking-[4px] text-zinc-500 uppercase mt-1.5" style="text-shadow:0 0 8px rgba(200,168,232,0.3)">Firmwares</div>
+        </div>
+        <div class="text-center border-l-2 border-red-dark pl-5">
+          <div class="font-orbitron font-bold text-3xl text-red-DEFAULT" style="text-shadow:0 0 10px rgba(152,32,219,.6)">ESP8266</div>
+          <div class="font-orbitron text-[0.62rem] tracking-[4px] text-zinc-500 uppercase mt-1.5" style="text-shadow:0 0 8px rgba(200,168,232,0.3)">Platform</div>
+        </div>
+        <div class="text-center border-l-2 border-red-dark pl-5">
+          <div class="font-orbitron font-bold text-3xl text-red-DEFAULT" style="text-shadow:0 0 10px rgba(152,32,219,.6)">OTA</div>
+          <div class="font-orbitron text-[0.62rem] tracking-[4px] text-zinc-500 uppercase mt-1.5" style="text-shadow:0 0 8px rgba(200,168,232,0.3)">Updates</div>
+        </div>
+        <div class="text-center border-l-2 border-red-dark pl-5">
+          <div class="font-orbitron font-bold text-3xl text-red-DEFAULT" style="text-shadow:0 0 10px rgba(152,32,219,.6)">OSS</div>
+          <div class="font-orbitron text-[0.62rem] tracking-[4px] text-zinc-500 uppercase mt-1.5" style="text-shadow:0 0 8px rgba(200,168,232,0.3)">Open Source</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCAN BAR -->
+  <div class="scan-bar mx-4 my-2 md:mx-12"></div>
+
+  <!-- FIRMWARE -->
+  <section id="firmware" class="px-4 py-16 sm:px-6 md:px-14 md:py-20">
+    <p class="text-center font-mono text-[0.58rem] tracking-[5px] text-red-dark uppercase mb-2">// Firmware Array</p>
+    <h2 class="text-center font-orbitron font-bold uppercase tracking-widest text-white mb-14" style="font-size:clamp(1.2rem,2.6vw,1.9rem)">
+      Select <span class="text-red-DEFAULT">Firmware</span>
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-6xl mx-auto">
+
+      <!-- CARD 1 -->
+      <div class="corner-cut relative flex flex-col border border-red-dim bg-[rgba(18,6,38,0.88)] backdrop-blur-sm transition-all duration-300 group hover:-translate-y-1 hover:border-red-dark" onmouseover="this.style.boxShadow='0 0 36px rgba(140,0,0,.18),inset 0 0 28px rgba(50,0,0,.07)'" onmouseout="this.style.boxShadow='none'">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-DEFAULT to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        <div class="flex items-start gap-4 px-5 pt-5 pb-4 border-b border-red-dim">
+          <div class="relative flex-shrink-0 w-11 h-11 border border-red-dark bg-red-DEFAULT/10 flex items-center justify-center">
+            <div class="absolute inset-[-3px] border border-red-DEFAULT/15 pointer-events-none"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9820db" stroke-width="1.4" class="w-5 h-5">
+              <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>
+              <circle cx="12" cy="12" r="1.5" fill="#9820db"/>
+              <line x1="12" y1="3" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="21"/>
+              <line x1="3" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="21" y2="12"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-mono text-[0.52rem] tracking-[3px] text-red-dark uppercase mb-1">FW_01 // CORE</div>
+            <div class="font-orbitron font-bold text-white text-sm tracking-wider uppercase"><a href="https://github.com/N3tm4t3/Net-Wraith" target="_blank">Net-Wraith</a></div>
+            <div class="font-mono text-[0.65rem] text-zinc-400 mt-0.5">NetWraith an ESP8266 Cyber Companion</div>
+          </div>
+          <div class="font-mono text-[0.55rem] tracking-widest text-red-DEFAULT border border-red-dark px-2 py-0.5 bg-red-DEFAULT/10 flex-shrink-0">v1.0.1</div>
+        </div>
+
+        <div class="flex flex-col gap-4 px-5 py-4 flex-1">
+          <p class="font-mono text-[0.72rem] text-zinc-400 leading-7">
+            NetWraith is a compact cyber companion built on ESP8266 (Wemos D1 Mini), designed as a keychain-sized embedded system for interactive experimentation and learning. It combines a minimal hardware setup with a responsive OLED interface and button controls</p>
+
+          <div class="grid grid-cols-2 gap-x-3 gap-y-2 border border-red-dim bg-black/50 p-3">
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Platform</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">ESP8266</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Flash</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">4MB min</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Interface</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">Web UI + Buttons</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Protocol</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">802.11 b/g/n</div></div>
+          </div>
+
+          <ul class="flex flex-col gap-1.5">
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span> Deauth attack detection & alert system</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>ADS-B aircraft tracking interface</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>OLED canvas drawing & display control</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Offline games</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Web-based control & OTA updates</li>
+          </ul>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-3.5 border-t border-red-dim">
+          <div class="flex items-center gap-2 font-mono text-[0.58rem] tracking-widest text-zinc-600 uppercase">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-DEFAULT pulse-dot flex-shrink-0" style="box-shadow:0 0 5px #9820db"></span>
+            Beta Release
+          </div>
+          <button onclick="openFlashModal('net-wraith')"
+            class="btn-slide btn-clip-sm font-orbitron text-[0.62rem] tracking-[3px] uppercase text-red-DEFAULT border border-red-dark px-4 py-2 transition-colors duration-300 hover:text-white hover:border-red-DEFAULT cursor-pointer w-full sm:w-auto text-center">
+            <span>Flash Device</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 2 -->
+      <div class="corner-cut relative flex flex-col border border-red-dim bg-[rgba(18,6,38,0.88)] backdrop-blur-sm transition-all duration-300 group hover:-translate-y-1 hover:border-red-dark" onmouseover="this.style.boxShadow='0 0 36px rgba(140,0,0,.18),inset 0 0 28px rgba(50,0,0,.07)'" onmouseout="this.style.boxShadow='none'">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-DEFAULT to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        <div class="flex items-start gap-4 px-5 pt-5 pb-4 border-b border-red-dim">
+          <div class="relative flex-shrink-0 w-11 h-11 border border-red-dark bg-red-DEFAULT/10 flex items-center justify-center">
+            <div class="absolute inset-[-3px] border border-red-DEFAULT/15 pointer-events-none"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9820db" stroke-width="1.4" class="w-5 h-5">
+              <rect x="3" y="6" width="18" height="13" rx="3"/>
+              <circle cx="8.5" cy="12" r="1.5" fill="#9820db"/>
+              <circle cx="15.5" cy="12" r="1.5" fill="#9820db"/>
+              <path d="M8.5 15.5 Q12 18 15.5 15.5" stroke-linecap="round"/>
+              <line x1="12" y1="6" x2="12" y2="3"/>
+              <circle cx="12" cy="2.2" r="0.9" fill="#9820db"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-mono text-[0.52rem] tracking-[3px] text-red-dark uppercase mb-1">FW_02 // COMPANION</div>
+            <div class="font-orbitron font-bold text-white text-sm tracking-wider uppercase"><a href="https://github.com/anabolyc/Tamagotchi" target="_blank">Tamagotchi</a></div>
+            <div class="font-mono text-[0.65rem] text-zinc-400 mt-0.5">Virtual pet, WiFi-fed</div>
+          </div>
+          
+        </div>
+
+        <div class="flex flex-col gap-4 px-5 py-4 flex-1">
+          <p class="font-mono text-[0.72rem] text-zinc-400 leading-7">
+            Tamagotchi emulator by <a href="https://github.com/anabolyc" target="_blank" class="text-pink-400">Anabolyc</a> bringing a classic digital pet experience to NetWraith. Raise, care, and interact with your companion as it evolves over time. Features include state saving, smooth ESP performance, and authentic behavior inspired by original devices.
+          </p>
+
+          <div class="grid grid-cols-2 gap-x-3 gap-y-2 border border-red-dim bg-black/50 p-3">
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Platform</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">ESP8266</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Display</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">128x64 OLED</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Input</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">3-button GPIO</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Storage</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">NVS persistent</div></div>
+          </div>
+
+          <ul class="flex flex-col gap-1.5">
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Authentic Tamagotchi P1 emulation experience</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>State saving & auto load system</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Smooth performance on ESP8266 hardware</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Button-based interaction & controls</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Animations & evolving pet states</li>
+          </ul>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-3.5 border-t border-red-dim">
+          <div class="flex items-center gap-2 font-mono text-[0.58rem] tracking-widest text-zinc-600 uppercase">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-DEFAULT pulse-dot flex-shrink-0" style="box-shadow:0 0 5px #9820db"></span>
+            Stable Release
+          </div>
+          <button onclick="openFlashModal('tamagotchi')"
+            class="btn-slide btn-clip-sm font-orbitron text-[0.62rem] tracking-[3px] uppercase text-red-DEFAULT border border-red-dark px-4 py-2 transition-colors duration-300 hover:text-white hover:border-red-DEFAULT cursor-pointer w-full sm:w-auto text-center">
+            <span>Flash Device</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 3 -->
+      <div class="corner-cut relative flex flex-col border border-red-dim bg-[rgba(18,6,38,0.88)] backdrop-blur-sm transition-all duration-300 group hover:-translate-y-1 hover:border-red-dark" onmouseover="this.style.boxShadow='0 0 36px rgba(140,0,0,.18),inset 0 0 28px rgba(50,0,0,.07)'" onmouseout="this.style.boxShadow='none'">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-DEFAULT to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        <div class="flex items-start gap-4 px-5 pt-5 pb-4 border-b border-red-dim">
+          <div class="relative flex-shrink-0 w-11 h-11 border border-red-dark bg-red-DEFAULT/10 flex items-center justify-center">
+            <div class="absolute inset-[-3px] border border-red-DEFAULT/15 pointer-events-none"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9820db" stroke-width="1.4" class="w-5 h-5">
+              <path d="M12 3 L22 21 H2 Z"/>
+              <line x1="12" y1="10" x2="12" y2="15"/>
+              <circle cx="12" cy="17.5" r="1" fill="#9820db"/>
+              <line x1="3" y1="3" x2="21" y2="21" stroke="#6b12b0" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-mono text-[0.52rem] tracking-[3px] text-red-dark uppercase mb-1">FW_03 // RESEARCH</div>
+            <div class="font-orbitron font-bold text-white text-sm tracking-wider uppercase"><a href="https://docs.spacehuhn.com/deauther/" target="_blank">Deauther</a></div>
+            <div class="font-mono text-[0.65rem] text-zinc-400 mt-0.5">802.11 deauth research tool</div>
+          </div>
+          
+        </div>
+
+        <div class="flex flex-col gap-4 px-5 py-4 flex-1">
+          <p class="font-mono text-[0.72rem] text-zinc-400 leading-7">
+            Deauther Firmware by Spacehuhn is a research-grade 802.11 management frame tool for authorized penetration testing and educational WiFi security analysis. Study client-AP behavior <br> on networks you own or have written permission to test.
+          </p>
+
+          <div class="grid grid-cols-2 gap-x-3 gap-y-2 border border-red-dim bg-black/50 p-3">
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Platform</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">ESP8266</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Range</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">Up to ~100m</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Interface</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">Web UI + Buttons</div></div>
+            <div><div class="font-mono text-[0.5rem] tracking-[2px] text-zinc-600 uppercase">Frame types</div><div class="font-mono text-[0.65rem] text-red-DEFAULT mt-0.5">Deauth / Disassoc</div></div>
+          </div>
+
+          <ul class="flex flex-col gap-1.5">
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Targeted or broadcast deauth frames</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>AP &amp; client scanning + selection</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Beacon spam &amp; probe flood modes</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Real-time deauthentication attack detection</li>
+            <li class="flex items-center gap-3 font-mono text-[0.68rem] text-zinc-400"><span class="w-1.5 h-1.5 flex-shrink-0 border border-red-dark bg-red-DEFAULT/25 rotate-45 inline-block"></span>Packet monitoring & wireless activity analysis</li>
+          </ul>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-3.5 border-t border-red-dim">
+          <div class="flex items-center gap-2 font-mono text-[0.58rem] tracking-widest text-zinc-600 uppercase">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-DEFAULT pulse-dot flex-shrink-0" style="box-shadow:0 0 5px #9820db"></span>
+            Stable Release
+          </div>
+          <button onclick="openFlashModal('deauther')"
+            class="btn-slide btn-clip-sm font-orbitron text-[0.62rem] tracking-[3px] uppercase text-red-DEFAULT border border-red-dark px-4 py-2 transition-colors duration-300 hover:text-white hover:border-red-DEFAULT cursor-pointer w-full sm:w-auto text-center">
+            <span>Flash Device</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Warning -->
+  <div id="warningPopup" class="warning-popup" style="
+    display:none;
+    position:fixed;
+    bottom:2rem; right:2rem;
+    z-index:9999;
+    max-width:420px; width:calc(100% - 2rem);
+    background: rgba(10, 20, 60, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(80,140,255,0.25);
+    border-top: 1px solid rgba(120,180,255,0.45);
+    box-shadow: 0 0 32px rgba(60,100,255,0.15), 0 8px 32px rgba(0,0,0,0.5), inset 0 0 40px rgba(30,60,180,0.08);
+    border-radius: 2px;
+    opacity:0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  ">
+    <!-- top accent line -->
+    <div style="height:2px; background:linear-gradient(90deg,transparent,rgba(100,160,255,0.7),transparent); border-radius:2px 2px 0 0;"></div>
+    <div style="padding: 1.1rem 1.25rem 1.1rem 1.25rem;">
+      <!-- header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.65rem;">
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;box-shadow:0 0 6px #60a5fa;flex-shrink:0;animation:warnPulse 2s ease-in-out infinite;"></div>
+          <span style="font-family:'Orbitron',sans-serif; font-size:0.55rem; letter-spacing:4px; text-transform:uppercase; color:rgba(147,197,253,0.9);">! Warning</span>
+        </div>
+        <button onclick="closeWarning()" style="
+          background:transparent; border:1px solid rgba(80,140,255,0.2); color:rgba(147,197,253,0.6);
+          width:22px; height:22px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+          transition: border-color 0.2s, color 0.2s; flex-shrink:0; border-radius:1px;
+        " onmouseover="this.style.borderColor='rgba(147,197,253,0.5)';this.style.color='rgba(147,197,253,1)'"
+           onmouseout="this.style.borderColor='rgba(80,140,255,0.2)';this.style.color='rgba(147,197,253,0.6)'">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" style="width:9px;height:9px;">
+            <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+          </svg>
+        </button>
+      </div>
+      <!-- body -->
+      <p style="font-family:'Share Tech Mono',monospace; font-size:0.67rem; color:rgba(186,220,255,0.7); line-height:1.85; letter-spacing:0.02em; margin:0;">
+        NetWraith firmware is provided for <span style="color:rgba(147,197,253,0.95);">educational and authorized security research purposes only</span>. Using these tools against networks or devices without explicit permission is illegal in most jurisdictions. The developers assume <span style="color:rgba(147,197,253,0.95);">no liability</span> for misuse. Always obtain proper written authorization before testing any network infrastructure you do not own.
+      </p>
+    </div>
+  </div>
+  <style>
+    @keyframes warnPulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  </style>
+  <script>
+    setTimeout(function() {
+      var p = document.getElementById('warningPopup');
+      p.style.display = 'block';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          p.style.opacity = '1';
+          p.style.transform = 'translateY(0)';
+        });
+      });
+    }, 5000);
+    function closeWarning() {
+      var p = document.getElementById('warningPopup');
+      p.style.opacity = '0';
+      p.style.transform = 'translateY(16px)';
+      setTimeout(function() { p.style.display = 'none'; }, 500);
+    }
+  </script>
+
+  <!-- DIVIDER -->
+  <div class="flex items-center gap-4 px-4 my-2 md:px-12">
+    <div class="flex-1 h-px" style="background:linear-gradient(90deg,transparent,#5b0fa8,transparent)"></div>
+    <div class="font-mono text-[0.58rem] tracking-[4px] text-red-dark uppercase">// End Transmission //</div>
+    <div class="flex-1 h-px" style="background:linear-gradient(90deg,transparent,#5b0fa8,transparent)"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="flex flex-wrap items-center justify-between gap-4 px-4 py-5 md:px-10 border-t border-red-dim bg-black/50">
+    <div class="font-orbitron text-sm tracking-[3px] text-red-dark">NET<span class="text-zinc-800">WRAITH</span></div>
+    <div class="footer-links flex gap-6">
+      <a href="https://github.com" target="_blank" class="font-mono text-[0.58rem] tracking-widest uppercase text-zinc-800 hover:text-red-dark transition-colors duration-200 no-underline">GitHub</a>
+      <a href="about.html" class="font-mono text-[0.58rem] tracking-widest uppercase text-zinc-800 hover:text-red-dark transition-colors duration-200 no-underline">About</a>
+      <a href="#" class="font-mono text-[0.58rem] tracking-widest uppercase text-zinc-800 hover:text-red-dark transition-colors duration-200 no-underline">Docs</a>
+    </div>
+    <div class="footer-note font-mono text-[0.58rem] tracking-widest text-zinc-900">// OPEN SOURCE // USE RESPONSIBLY //</div>
+  </footer>
+
+  <!-- FLASH MODAL -->
+  <div class="modal-overlay" id="flashModal">
+    <div class="modal-box">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-red-dim">
+        <div class="font-orbitron text-sm tracking-[3px] uppercase text-white">
+          Flash <span class="text-red-DEFAULT" id="modalFwName">Firmware</span>
+        </div>
+        <button onclick="closeFlashModal()" class="w-7 h-7 border border-zinc-800 text-zinc-400 font-mono text-xs hover:border-red-dark hover:text-red-DEFAULT transition-colors duration-200 flex items-center justify-center cursor-pointer bg-transparent">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" class="w-3 h-3">
+            <line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-5 px-6 py-6">
+        <div class="flex items-center gap-4 border border-red-dim bg-black/50 px-4 py-3">
+          <div>
+            <div class="font-orbitron text-sm tracking-wide text-white" id="modalFwLabel">--</div>
+            <div class="font-mono text-[0.58rem] tracking-widest text-red-dark mt-0.5" id="modalFwVer">--</div>
+          </div>
+        </div>
+
+        <p id="modalStatus" class="hidden font-mono text-[0.62rem] leading-6 tracking-wide text-red-DEFAULT border border-red-dark/40 bg-red-DEFAULT/10 px-4 py-3"></p>
+
+        <p class="font-mono text-[0.68rem] text-zinc-400 leading-7 tracking-wide">
+          Connect your <span class="text-red-dark">ESP8266 / Wemos D1 Mini</span> via USB, then click the button below.<br>
+          Requires <span class="text-red-dark">Chrome</span> or <span class="text-red-dark">Edge</span> - Web Serial API needed.
+        </p>
+
+        <div class="flex justify-center py-1">
+          <esp-web-install-button id="espInstallBtn" manifest="">
+            <button slot="activate" class="btn-clip font-orbitron text-[0.68rem] tracking-[3px] uppercase text-white bg-red-DEFAULT px-8 py-3 border-0 cursor-pointer transition-all duration-200" onmouseover="this.style.background='#f63eff';this.style.boxShadow='0 0 18px #f63eff'" onmouseout="this.style.background='#9820db';this.style.boxShadow='none'">
+              Connect &amp; Flash
+            </button>
+            <span slot="unsupported">
+              <span class="font-mono text-[0.65rem] text-zinc-400 tracking-wide">Web Serial not supported â€” use Chrome or Edge on desktop.</span>
+            </span>
+          </esp-web-install-button>
+        </div>
+
+        <p class="font-mono text-[0.58rem] tracking-wide text-zinc-800 text-center">
+          Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank" class="text-red-dark hover:text-red-DEFAULT transition-colors duration-200 no-underline">ESP Web Tools</a>
+          &nbsp;-&nbsp; No file download needed. Flashed directly over USB.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<script>
+  const pc = document.getElementById('particles');
+  const espInstallBtn = document.getElementById('espInstallBtn');
+  const modalStatus = document.getElementById('modalStatus');
+  const fallbackCatalog = {
+    firmwares: {
+      'net-wraith': { name: 'Net-Wraith', version: 'v1.0.1', channel: 'BETA', path: 'https://github.com/N3tm4t3/Net-Wraith-Flasher/raw/refs/heads/main/Net-Wraith.bin' },
+      tamagotchi: { name: 'Tamagotchi', version: 'v0.9.2', channel: 'STABLE', path: 'https://github.com/N3tm4t3/Net-Wraith-Flasher/raw/refs/heads/main/Tamagotchi.bin' },
+      deauther: { name: 'Deauther', version: 'v2.0.1', channel: 'BETA', path: 'https://github.com/N3tm4t3/Net-Wraith-Flasher/raw/refs/heads/main/Deauther.bin' }
+    }
+  };
+  let firmwareCatalog = null;
+  let activeManifestUrl = '';
+  let usedFallbackCatalog = false;
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = Math.random() > .5 ? '2px' : '3px';
+    p.style.cssText = `left:${Math.random()*100}%;width:${s};height:${s};animation-duration:${7+Math.random()*10}s;animation-delay:${Math.random()*12}s`;
+    pc.appendChild(p);
+  }
+  document.getElementById('navFlashBtn').onclick = () => {
+    document.getElementById('firmware').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  function setModalStatus(message, tone = 'info') {
+    if (!message) {
+      modalStatus.textContent = '';
+      modalStatus.classList.add('hidden');
+      return;
+    }
+
+    modalStatus.textContent = message;
+    modalStatus.classList.remove('hidden');
+    modalStatus.classList.remove('text-red-DEFAULT', 'border-red-dark/40', 'bg-red-DEFAULT/10', 'text-yellow-300', 'border-yellow-500/40', 'bg-yellow-500/10');
+
+    if (tone === 'warn') {
+      modalStatus.classList.add('text-yellow-300', 'border-yellow-500/40', 'bg-yellow-500/10');
+    } else {
+      modalStatus.classList.add('text-red-DEFAULT', 'border-red-dark/40', 'bg-red-DEFAULT/10');
+    }
+  }
+
+  async function loadFirmwareCatalog() {
+    if (firmwareCatalog) return firmwareCatalog;
+
+    try {
+      const response = await fetch('./manifest.json', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('Unable to load manifest.json');
+      }
+      firmwareCatalog = await response.json();
+      return firmwareCatalog;
+    } catch (error) {
+      console.warn('manifest.json fetch failed, using inline fallback.', error);
+      usedFallbackCatalog = true;
+      firmwareCatalog = fallbackCatalog;
+      return firmwareCatalog;
+    }
+  }
+
+  function revokeActiveManifestUrl() {
+    if (!activeManifestUrl) return;
+    URL.revokeObjectURL(activeManifestUrl);
+    activeManifestUrl = '';
+  }
+
+  function buildInstallManifest(entry) {
+    return {
+      name: entry.name,
+      version: entry.version,
+      new_install_prompt_erase: true,
+      builds: [
+        {
+          chipFamily: 'ESP8266',
+          parts: [
+            {
+              path: entry.path || '',
+              offset: 0
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  async function openFlashModal(firmwareKey) {
+    revokeActiveManifestUrl();
+    document.getElementById('flashModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('modalFwName').textContent = 'Firmware';
+    document.getElementById('modalFwLabel').textContent = 'Loading Firmware';
+    document.getElementById('modalFwVer').textContent = 'Please wait...';
+    espInstallBtn.setAttribute('manifest', '');
+    setModalStatus('');
+
+    try {
+      const catalog = await loadFirmwareCatalog();
+      const entry = catalog.firmwares?.[firmwareKey];
+      if (!entry) {
+        throw new Error(`Firmware "${firmwareKey}" is missing from manifest.json`);
+      }
+
+      document.getElementById('modalFwName').textContent = entry.name;
+      document.getElementById('modalFwLabel').textContent = entry.name + ' Firmware';
+      document.getElementById('modalFwVer').textContent = entry.version + '  //  ' + (entry.channel || (entry.version.startsWith('v0') ? 'BETA' : 'STABLE'));
+
+      activeManifestUrl = URL.createObjectURL(
+        new Blob([JSON.stringify(buildInstallManifest(entry), null, 2)], { type: 'application/json' })
+      );
+      espInstallBtn.setAttribute('manifest', activeManifestUrl);
+
+      if (!entry.path) {
+        setModalStatus('Firmware URL is still empty in manifest.json. Add the .bin link before flashing.', 'warn');
+      } else if (usedFallbackCatalog) {
+        setModalStatus('manifest.json could not be loaded, so the page is using embedded firmware links instead. If you opened index.html directly, serving this folder over HTTP is still recommended.', 'warn');
+      } else if (location.protocol === 'file:') {
+        setModalStatus('Local preview mode detected. If flashing fails, serve this folder over HTTP instead of opening index.html directly.', 'warn');
+      }
+    } catch (error) {
+      console.error(error);
+      document.getElementById('modalFwLabel').textContent = 'Firmware Unavailable';
+      document.getElementById('modalFwVer').textContent = 'manifest.json could not be loaded';
+      setModalStatus('Unable to prepare the flasher. If you opened this page directly from disk, run it through a local web server and try again.', 'warn');
+    }
+  }
+  function closeFlashModal() {
+    document.getElementById('flashModal').classList.remove('open');
+    document.body.style.overflow = '';
+    revokeActiveManifestUrl();
+    setModalStatus('');
+  }
+  document.getElementById('flashModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeFlashModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFlashModal(); });
+</script>
+</body>
+</html>
