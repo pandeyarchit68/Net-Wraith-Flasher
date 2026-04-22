@@ -1,0 +1,22 @@
+{
+  "firmwares": {
+    "net-wraith": {
+      "name": "Net-Wraith",
+      "version": "v1.0.1",
+      "channel": "BETA",
+      "path": "https://raw.githubusercontent.com/N3tm4t3/Net-Wraith-Flasher/main/Net-Wraith.bin"
+    },
+    "tamagotchi": {
+      "name": "Tamagotchi",
+      "version": "v1.0.1",
+      "channel": "STABLE",
+      "path": "https://raw.githubusercontent.com/N3tm4t3/Net-Wraith-Flasher/main/Tamagotchi.bin"
+    },
+    "deauther": {
+      "name": "Deauther",
+      "version": "v2.0.1",
+      "channel": "BETA",
+      "path": "https://raw.githubusercontent.com/N3tm4t3/Net-Wraith-Flasher/main/Deauther.bin"
+    }
+  }
+}
