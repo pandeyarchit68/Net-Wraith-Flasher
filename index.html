@@ -4,6 +4,26 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>NetWraith — Firmware Hub</title>
+
+  <meta name="description" content="NetWraith Firmware Hub — Flash and manage ESP8266 firmwares including Net-Wraith, Tamagotchi, and Deauther. Built for wireless research, education, and authorized security testing."/>
+  <meta name="keywords" content="NetWraith, ESP8266, firmware, deauther, WiFi, wireless security, OTA, flash tool, embedded, IoT, penetration testing, Net-Mate, N3tm4t3"/>
+  <meta name="author" content="Vansh Raj Singh aka Net-Mate (N3tm4t3)"/>
+  <meta name="robots" content="index, follow"/>
+  <meta name="theme-color" content="#9820db"/>
+
+  <link rel="icon" href="favicon.png">
+
+  <meta property="og:title" content="NetWraith — Firmware Hub"/>
+  <meta property="og:description" content="Flash ESP8266 firmwares directly from your browser. Built by Vansh Raj Singh (N3tm4t3)."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:image" content="og-image.jpg"/>
+  <meta property="og:url" content="https://n3tm4t3.github.io/Net-Wraith-Flasher/">
+
+
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:title" content="NetWraith — Firmware Hub"/>
+  <meta name="twitter:description" content="Flash ESP8266 firmwares directly from your browser. Built by Vansh Raj Singh aka Net-Mate (N3tm4t3)."/>
+  <meta name="twitter:image" content="logo.png"/>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -406,7 +426,6 @@
     <div class="hero-corners absolute bottom-8 right-8 w-10 h-10 border-b-2 border-r-2 border-red-DEFAULT z-[2]"></div>
 
     <div class="relative z-[2] flex flex-col items-center">
-      <!-- lable 1 -->
       
 
       <h1 class="font-orbitron font-black uppercase leading-tight cursor-default">
@@ -421,9 +440,7 @@
       <div class="flex gap-4 flex-wrap justify-center mt-7">
         <a href="#firmware" class="view-fw-btn btn-clip font-orbitron text-[0.7rem] tracking-[3px] uppercase px-8 py-3.5 no-underline inline-block">
           <svg class="vf-border" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <!-- top border: line bowing inward (downward arc) -->
             <path d="M0,0 Q50,6 100,0"/>
-            <!-- bottom border: line bowing inward (upward arc) -->
             <path d="M0,100 Q50,94 100,100"/>
           </svg>
           <span class="vf-text">View Firmware</span>
@@ -437,7 +454,7 @@
         </a>
       </div>
 
-      <!-- horizontal details -->
+
       <div class="hero-stats flex flex-wrap gap-6 md:gap-10 justify-center mt-10 w-full max-w-5xl cursor-default">
         <div class="text-center border-l-2 border-red-dark pl-5">
           <div class="font-orbitron font-bold text-3xl text-red-DEFAULT" style="text-shadow:0 0 10px rgba(152,32,219,.6)">3</div>
@@ -456,13 +473,8 @@
     </div>
   </section>
 
-  <!-- SCAN BAR -->
   <div class="scan-bar mx-4 my-2 md:mx-12"></div>
-<!-- hero ended here -->
 
-
-<!-- card section begins here -->
-  <!-- FIRMWARE -->
   <section id="firmware" class="px-4 py-16 sm:px-6 md:px-14 md:py-20">
     <p class="text-center font-mono text-[0.58rem] tracking-[5px] text-red-dark uppercase mb-2 cursor-default">// Firmware Array</p>
     <h2 class="text-center font-orbitron font-bold uppercase tracking-widest text-white mb-14 cursor-default" style="font-size:clamp(1.2rem,2.6vw,1.9rem)">
@@ -640,7 +652,6 @@
     </div>
   </section>
 
-  <!-- Warning -->
   <div id="warningPopup" class="warning-popup" style="
     display:none;
     position:fixed;
@@ -658,10 +669,8 @@
     transform: translateY(16px);
     transition: opacity 0.5s ease, transform 0.5s ease;
   ">
-    <!-- top accent line -->
     <div style="height:2px; background:linear-gradient(90deg,transparent,rgba(100,160,255,0.7),transparent); border-radius:2px 2px 0 0;"></div>
     <div style="padding: 1.1rem 1.25rem 1.1rem 1.25rem;">
-      <!-- header -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.65rem;">
         <div style="display:flex; align-items:center; gap:0.5rem;">
           <div style="width:6px;height:6px;border-radius:50%;background:#60a5fa;box-shadow:0 0 6px #60a5fa;flex-shrink:0;animation:warnPulse 2s ease-in-out infinite;"></div>
@@ -678,7 +687,6 @@
           </svg>
         </button>
       </div>
-      <!-- body -->
       <p style="font-family:'Share Tech Mono',monospace; font-size:0.67rem; color:rgba(186,220,255,0.7); line-height:1.85; letter-spacing:0.02em; margin:0;">
         NetWraith firmware is provided for <span style="color:rgba(147,197,253,0.95);">educational and authorized security research purposes only</span>. Using these tools against networks or devices without explicit permission is illegal in most jurisdictions. The developers assume <span style="color:rgba(147,197,253,0.95);">no liability</span> for misuse. Always obtain proper written authorization before testing any network infrastructure you do not own.
       </p>
@@ -705,22 +713,19 @@
       setTimeout(function() { p.style.display = 'none'; }, 500);
     }
   </script>
-
-  <!-- DIVIDER -->
   <div class="flex items-center gap-4 px-4 my-2 md:px-12">
     <div class="flex-1 h-px" style="background:linear-gradient(90deg,transparent,#5b0fa8,transparent)"></div>
     <div class="font-mono text-[0.58rem] tracking-[4px] text-red-dark uppercase">// End Transmission //</div>
     <div class="flex-1 h-px" style="background:linear-gradient(90deg,transparent,#5b0fa8,transparent)"></div>
   </div>
 
-  <!-- FOOTER -->
   <footer class="flex flex-wrap items-center justify-between gap-4 px-4 py-5 md:px-10 border-t border-red-dim bg-black/50">
     <div class="font-orbitron text-sm tracking-[3px] text-red-dark">NET<span class="text-zinc-400">WRAITH</span></div>
     
     <div class="font-mono text-[0.58rem] tracking-widest text-zinc-500">// USE RESPONSIBLY //</div>
   </footer>
 
-  <!-- FLASH MODAL -->
+
   <div class="modal-overlay cursor-default" id="flashModal">
     <div class="modal-box">
       <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-red-dim">
